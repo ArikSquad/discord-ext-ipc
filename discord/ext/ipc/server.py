@@ -68,6 +68,8 @@ class Server:
         Turn multicasting on/off. Defaults to True
     multicast_port: int
         The port to run the multicasting server on. Defaults to 20000
+    call_when_ready: function
+        Calls the supplied function when ipc starts.
     """
 
     ROUTES = {}
@@ -80,6 +82,7 @@ class Server:
         secret_key=None,
         do_multicast=True,
         multicast_port=20000,
+        call_when_ready=None
     ):
         self.bot = bot
         self.loop = bot.loop
@@ -97,6 +100,7 @@ class Server:
 
         self.endpoints = {}
 
+        self.call_when_ready = call_when_ready
     def route(self, name=None):
         """Used to register a coroutine as an endpoint when you have
         access to an instance of :class:`.Server`.
@@ -178,6 +182,8 @@ class Server:
                             endpoint,
                             request,
                         )
+
+               
                         self.bot.dispatch("ipc_error", endpoint, error)
 
                         response = {
@@ -250,10 +256,11 @@ class Server:
 
     def start(self):
         """Starts the IPC server."""
-        self.bot.dispatch("ipc_ready")
-
         self._server = aiohttp.web.Application()
         self._server.router.add_route("GET", "/", self.handle_accept)
+
+        if self.call_when_ready is not None:
+            self.call_when_ready()
 
         if self.do_multicast:
             self._multicast_server = aiohttp.web.Application()

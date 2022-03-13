@@ -1,10 +1,10 @@
 import logging
-
+import asyncio
 import aiohttp.web
 from discord.ext.ipc.errors import *
 
 log = logging.getLogger(__name__)
-
+loop = asyncio.get_event_loop()
 
 def route(name=None):
     """
@@ -259,6 +259,6 @@ class Server:
             self._multicast_server = aiohttp.web.Application()
             self._multicast_server.router.add_route("GET", "/", self.handle_multicast)
 
-            self.loop.run_until_complete(self.__start(self._multicast_server, self.multicast_port))
+            loop.run_until_complete(self.__start(self._multicast_server, self.multicast_port))
 
-        self.loop.run_until_complete(self.__start(self._server, self.port))
+        loop.run_until_complete(self.__start(self._server, self.port))

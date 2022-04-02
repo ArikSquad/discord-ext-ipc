@@ -4,7 +4,6 @@ import aiohttp.web
 from discord.ext.ipc.errors import *
 
 log = logging.getLogger(__name__)
-loop = asyncio.get_event_loop()
 
 def route(name=None):
     """
@@ -254,8 +253,9 @@ class Server:
         site = aiohttp.web.TCPSite(runner, self.host, port)
         await site.start()
 
-    def start(self):
+    async def start(self):
         """Starts the IPC server."""
+        loop = asyncio.get_running_loop()
         self._server = aiohttp.web.Application()
         self._server.router.add_route("GET", "/", self.handle_accept)
 
@@ -265,7 +265,11 @@ class Server:
         if self.do_multicast:
             self._multicast_server = aiohttp.web.Application()
             self._multicast_server.router.add_route("GET", "/", self.handle_multicast)
-
-            loop.run_until_complete(self.__start(self._multicast_server, self.multicast_port))
-
-        loop.run_until_complete(self.__start(self._server, self.port))
+            if loop.is_running():
+                await self.__start(self._multicast_server, self.multicast_port)
+            else:
+                loop.run_until_complete(await self.__start(self._multicast_server, self.multicast_port))
+        if loop.is_running():
+            await self.__start(self._server, self.port)
+        else:
+            loop.run_until_complete(await self.__start(self._server, self.port))
